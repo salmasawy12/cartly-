@@ -1,0 +1,32 @@
+# Abandoned bare-RN-CLI attempt - kept on disk for reference, not tracked
+mobile-bare-rn-backup/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Expo / React Native
+mobile/.expo/
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/android/app/build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Java / Maven
+backend/target/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# OS / IDE
+.DS_Store
+.idea/
+*.iml
