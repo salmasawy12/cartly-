@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Button from '../components/Button';
+import InlineError from '../components/InlineError';
 import { usePro } from '../context/ProContext';
 import { colors, radius, spacing, typography } from '../theme';
 
@@ -18,18 +19,39 @@ const FEATURES = [
 ];
 
 export default function UpgradeModal({ visible, reason, onClose }: Props) {
-  const { simulatePurchase } = usePro();
+  const { isPro, product, purchasing, iapError, clearIapError, purchasePro } = usePro();
+
+  useEffect(() => {
+    if (isPro) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro]);
 
   async function handleUpgrade() {
-    await simulatePurchase();
-    onClose();
+    await purchasePro();
   }
 
+  const priceLabel = product ? `${product.displayPrice}/mo` : '$2.99/mo';
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        clearIapError();
+        onClose();
+      }}
+    >
       <View style={styles.overlay}>
         <View style={styles.box}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose} hitSlop={8}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => {
+              clearIapError();
+              onClose();
+            }}
+            hitSlop={8}
+          >
             <Ionicons name="close" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
@@ -49,8 +71,20 @@ export default function UpgradeModal({ visible, reason, onClose }: Props) {
             ))}
           </View>
 
-          <Button title="Upgrade — $1.99/mo" onPress={handleUpgrade} style={styles.upgradeButton} />
-          <TouchableOpacity onPress={onClose} style={styles.notNow}>
+          {iapError ? <InlineError message={iapError} /> : null}
+
+          {purchasing ? (
+            <ActivityIndicator color={colors.primary} style={styles.upgradeButton} />
+          ) : (
+            <Button title={`Upgrade — ${priceLabel}`} onPress={handleUpgrade} style={styles.upgradeButton} />
+          )}
+          <TouchableOpacity
+            onPress={() => {
+              clearIapError();
+              onClose();
+            }}
+            style={styles.notNow}
+          >
             <Text style={styles.notNowText}>Not now</Text>
           </TouchableOpacity>
         </View>

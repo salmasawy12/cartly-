@@ -188,6 +188,19 @@ public class GroceryListService {
         messagingTemplate.convertAndSend("/topic/lists/" + listId, new ListDeletedEvent(listId));
     }
 
+    @Transactional
+    public void deleteAllDataForUser(User user) {
+        List<GroceryList> ownedLists = listRepository.findByOwnerId(user.getId());
+        for (GroceryList list : ownedLists) {
+            itemRepository.deleteByListId(list.getId());
+            memberRepository.deleteByListId(list.getId());
+            messagingTemplate.convertAndSend("/topic/lists/" + list.getId(), new ListDeletedEvent(list.getId()));
+        }
+        listRepository.deleteAll(ownedLists);
+
+        memberRepository.deleteAll(memberRepository.findByUserId(user.getId()));
+    }
+
     private GroceryList requireMembership(User user, Long listId) {
         ListMember membership = memberRepository.findByListIdAndUserIdAndStatus(listId, user.getId(), MembershipStatus.ACCEPTED)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a member of this list"));

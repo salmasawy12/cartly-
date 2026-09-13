@@ -8,8 +8,11 @@
     "userInterfaceStyle": "light",
     "backgroundColor": "#F7F8F7",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.swiftcairo.cartly"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.swiftcairo.cartly",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.swiftcairo.cartly",
@@ -34,6 +37,12 @@
           "backgroundColor": "#F7F8F7"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e4d43a8c-1cb0-49fc-a991-dedb2ca9dc71"
+      }
+    },
+    "owner": "salmasawy12"
   }
 }

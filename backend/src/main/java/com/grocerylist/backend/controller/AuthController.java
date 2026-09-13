@@ -34,4 +34,9 @@ public class AuthController {
     public MeResponse me(@AuthenticationPrincipal User user) {
         return new MeResponse(user.getId(), user.getEmail(), user.getDisplayName());
     }
+
+    @DeleteMapping("/me")
+    public void deleteAccount(@AuthenticationPrincipal User user) {
+        authService.deleteAccount(user);
+    }
 }

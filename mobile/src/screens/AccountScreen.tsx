@@ -1,15 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Avatar from '../components/Avatar';
+import InlineError from '../components/InlineError';
 import { useAuth } from '../context/AuthContext';
 import { usePro } from '../context/ProContext';
 import { colors, gradients, radius, shadow, spacing, typography } from '../theme';
+import UpgradeModal from './UpgradeModal';
 
 export default function AccountScreen() {
-  const { user, logout } = useAuth();
-  const { isPro, simulatePurchase, resetToFree } = usePro();
+  const { user, logout, deleteAccount } = useAuth();
+  const { isPro, restoring, iapError, restorePurchases, manageSubscription } = usePro();
+  const [upgradeVisible, setUpgradeVisible] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   function confirmLogout() {
     Alert.alert('Log out?', 'You can log back in any time.', [
@@ -18,15 +23,38 @@ export default function AccountScreen() {
     ]);
   }
 
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Delete Account?',
+      'This permanently deletes your account, any lists you own, and removes you from lists shared with you. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete Account', style: 'destructive', onPress: handleDeleteAccount },
+      ],
+    );
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await deleteAccount();
+    } catch (e: any) {
+      setDeleting(false);
+      setDeleteError(e.message ?? 'Could not delete your account. Please try again.');
+    }
+  }
+
   function togglePlan() {
     if (isPro) {
-      Alert.alert('Switch to Free', 'Dev tool: test the paywall gates again.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Switch to Free', style: 'destructive', onPress: resetToFree },
-      ]);
+      manageSubscription();
     } else {
-      simulatePurchase();
+      setUpgradeVisible(true);
     }
+  }
+
+  async function handleRestore() {
+    await restorePurchases();
   }
 
   return (
@@ -56,10 +84,32 @@ export default function AccountScreen() {
         </Text>
         <TouchableOpacity onPress={togglePlan} style={[styles.planButton, isPro && styles.planButtonOnGradient]}>
           <Text style={[styles.planButtonText, isPro && styles.planButtonTextOnGradient]}>
-            {isPro ? 'Manage Plan' : 'Upgrade to Pro — $1.99/mo'}
+            {isPro ? 'Manage Plan' : 'Upgrade to Pro'}
           </Text>
         </TouchableOpacity>
       </LinearGradient>
+
+      {iapError ? (
+        <View style={styles.iapErrorWrap}>
+          <InlineError message={iapError} />
+        </View>
+      ) : null}
+
+      {!isPro && (
+        <TouchableOpacity onPress={handleRestore} style={styles.restoreRow} disabled={restoring}>
+          {restoring ? (
+            <ActivityIndicator color={colors.textMuted} size="small" />
+          ) : (
+            <Text style={styles.restoreText}>Restore Purchases</Text>
+          )}
+        </TouchableOpacity>
+      )}
+
+      <UpgradeModal
+        visible={upgradeVisible}
+        reason="Unlock unlimited lists and sharing."
+        onClose={() => setUpgradeVisible(false)}
+      />
 
       <Text style={styles.sectionLabel}>ACCOUNT</Text>
       <View style={styles.group}>
@@ -75,6 +125,28 @@ export default function AccountScreen() {
       <TouchableOpacity style={styles.logoutRow} onPress={confirmLogout} activeOpacity={0.7}>
         <Ionicons name="log-out-outline" size={20} color={colors.danger} />
         <Text style={styles.logoutText}>Log Out</Text>
+      </TouchableOpacity>
+
+      {deleteError ? (
+        <View style={styles.iapErrorWrap}>
+          <InlineError message={deleteError} />
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        style={styles.logoutRow}
+        onPress={confirmDeleteAccount}
+        activeOpacity={0.7}
+        disabled={deleting}
+      >
+        {deleting ? (
+          <ActivityIndicator color={colors.danger} size="small" />
+        ) : (
+          <>
+            <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            <Text style={styles.logoutText}>Delete Account</Text>
+          </>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -123,6 +195,9 @@ const styles = StyleSheet.create({
     ...shadow.raised,
   },
   planCardFree: { borderWidth: 1, borderColor: colors.border },
+  iapErrorWrap: { marginHorizontal: spacing.xl, marginTop: spacing.md },
+  restoreRow: { alignItems: 'center', paddingVertical: spacing.sm },
+  restoreText: { ...typography.caption, fontWeight: '600', textDecorationLine: 'underline' },
   planCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
   planCardTitle: { ...typography.bodyStrong },
   planCardSubtitle: { ...typography.caption, marginBottom: spacing.md },

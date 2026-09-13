@@ -9,6 +9,7 @@ import com.grocerylist.backend.security.JwtService;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
@@ -18,11 +19,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final GroceryListService groceryListService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
+                        GroceryListService groceryListService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.groceryListService = groceryListService;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -54,5 +58,11 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail());
         return new AuthResponse(token, user.getId(), user.getEmail(), user.getDisplayName());
+    }
+
+    @Transactional
+    public void deleteAccount(User user) {
+        groceryListService.deleteAllDataForUser(user);
+        userRepository.delete(user);
     }
 }
